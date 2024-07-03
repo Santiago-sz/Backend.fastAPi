@@ -77,6 +77,6 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": user.username, "token_type": "bearer"}
 
 
-@app.get("/user/me")
+@app.get("/users/me")
 async def me(user: User = Depends(current_user)):
     return user
