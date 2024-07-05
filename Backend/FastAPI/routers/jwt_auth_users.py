@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
@@ -10,9 +10,9 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_DURATION = 1  # Changed to 15 minutes for testing
 SECRET = "supersecret"  # Replace with a secure secret key
 
-app = FastAPI()
+router = APIRouter()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2 = OAuth2PasswordBearer(tokenUrl="login")
 
 pwd_context = CryptContext(schemes=["bcrypt"])
 
@@ -65,7 +65,7 @@ def authenticate_user(username: str, password: str):
         return False
     return user
 
-@app.post("/login")
+@router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -89,7 +89,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": jwt.encode(access_token, SECRET, algorithm=ALGORITHM), "token_type": "bearer"}
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials",
@@ -100,6 +100,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
+        
     except JWTError:
         raise credentials_exception
     user = get_user(username)
@@ -108,6 +109,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 
-@app.get("/users/me")
+@router.get("/users/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
